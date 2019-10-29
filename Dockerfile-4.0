@@ -1,0 +1,35 @@
+FROM maven:3.6.2-jdk-11 as builder
+
+WORKDIR /build
+RUN git clone https://github.com/Evolveum/midpoint \
+  && cd midpoint \
+  && git checkout support-4.0
+
+WORKDIR /build/midpoint
+RUN mvn dependency:resolve
+
+ARG REVISION=fd4afa599661c840f0e4b7cb35dd4c919874bb71
+RUN git pull && git checkout $REVISION
+
+RUN mvn package -DskipTests=true -Dmaven.javadoc.skip=true
+RUN mv gui/admin-gui/target/midpoint-executable.war /build/midpoint.war \
+  && git rev-parse HEAD > /build/VERSION.txt
+
+
+FROM ubuntu:18.04
+
+ENV JAVA_HOME /usr/lib/jvm/java-11-openjdk-amd64
+RUN sed 's/main$/main universe/' -i /etc/apt/sources.list
+RUN apt-get update -y \
+  && apt-get install -y openjdk-11-jdk-headless tzdata ttf-dejavu \
+  && apt-get clean \
+  && rm -rf /var/lib/apt/lists/*
+
+ENV MP_DIR /opt/midpoint
+RUN mkdir -p ${MP_DIR}/var && mkdir -p ${MP_DIR}/lib
+
+COPY --from=builder /build/midpoint.war ${MP_DIR}/lib/
+COPY --from=builder /build/VERSION.txt ${MP_DIR}/
+
+EXPOSE 8080
+
