@@ -8,7 +8,7 @@ RUN git clone https://github.com/Evolveum/midpoint \
 WORKDIR /build/midpoint
 RUN mvn dependency:resolve
 
-ARG REVISION=987526a1d3cd6be8ecc84f40d2597a0594200ff7
+ARG REVISION=10ed606cff65b667d674430f50295c8479fed87c
 RUN git pull && git checkout $REVISION
 
 RUN mvn package -DskipTests=true -Dmaven.javadoc.skip=true
